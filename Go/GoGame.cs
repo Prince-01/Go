@@ -17,8 +17,9 @@ namespace Go
         }
         public int Size { get; set; }
         public Field[,] Board { get; set; }
+        HashSet<Field>[] Surroundings;
+        int[] Breaths;
         public Players Turn { get; set; }
-        public int OpenedLeft { get; set; }
         public GoGame(int Size)
         {
             this.Size = Size;
@@ -26,7 +27,8 @@ namespace Go
             for (int i = 0; i < Size; i++)
                 for (int j = 0; j < Size; j++)
                     Board[i, j] = new Field(i, j);
-            OpenedLeft = Size * Size;
+            Surroundings = new HashSet<Field>[5];
+            Breaths = new int[5];
         }
 
         public void SwapTurns()
@@ -40,11 +42,14 @@ namespace Go
         internal bool MakeMove(Point fieldSelected)
         {
             Field field = GetFromPoint(fieldSelected);
+
+            Geometry.SetNearGroups(Board, field, Surroundings);
+            Geometry.SetBreathsForNearGroups(Board, Surroundings, Breaths);
+
             if (!CheckIfLegal(field))
                 return false;
             PushField(field);
             SwapTurns();
-            OpenedLeft--;
             return true;
         }
 
@@ -56,7 +61,6 @@ namespace Go
         private void PushField(Field field)
         {
             AffectBoard(field);
-            field.Player = Turn;
         }
         
         private void AffectBoard(Field field)
@@ -68,26 +72,18 @@ namespace Go
         {
             if (field.Player != Players.None)
                 return false;
+            field.Player = Turn;
             if (CheckIfSuicidalMove(field))
+            {
+                field.Player = Players.None;
                 return false;
+            }
             return true;
         }
 
         private bool CheckIfSuicidalMove(Field field)
         {
-            if (field.Opened)
-                return false;
-            for (int X = field.X + 1; X < Size; X++)
-            {
-                if (Board[X, field.Y].Player == Turn)
-                    return false;
-            }
-            for (int X = Size - 1; X >= 0; X--)
-            {
-                if (Board[X, field.Y].Player == Turn)
-                    return false;
-            }
-            return true;
+            return !(Breaths[0] != 0 || Breaths[1] == 0 || Breaths[2] == 0 || Breaths[3] == 0 || Breaths[4] == 0);
         }
     }
 }

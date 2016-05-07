@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.25029.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Go", "Go\Go.csproj", "{E37577EF-357D-4DC2-9B6E-258B1DE6B7F1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoUnitTests", "GoUnitTests\GoUnitTests.csproj", "{ED984C81-96CE-4354-8015-F0C86522908D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{E37577EF-357D-4DC2-9B6E-258B1DE6B7F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E37577EF-357D-4DC2-9B6E-258B1DE6B7F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E37577EF-357D-4DC2-9B6E-258B1DE6B7F1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED984C81-96CE-4354-8015-F0C86522908D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED984C81-96CE-4354-8015-F0C86522908D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED984C81-96CE-4354-8015-F0C86522908D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED984C81-96CE-4354-8015-F0C86522908D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
