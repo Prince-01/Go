@@ -66,8 +66,12 @@ namespace Go
                 return;
             if (!game.MakeMove(fieldSelected))
                 MessageBox.Show("Illegal move");
+            else
+                AlphaBeta.Perform(game);
 
-            DrawField(CreateGraphics(), game.Board[fieldSelected.X - 1, fieldSelected.Y - 1]);
+            //DrawField(CreateGraphics(), game.Board[fieldSelected.X - 1, fieldSelected.Y - 1]);
+            DrawBoard();
+            Text = "White: " + game.Points[0] + ", Black: " + game.Points[1];
         }
 
         private bool ValidateSelectedField(Point fieldSelected)

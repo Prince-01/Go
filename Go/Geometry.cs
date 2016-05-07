@@ -12,6 +12,8 @@ namespace Go
         public static int GetNumberOfBreaths(Field[,] plane, HashSet<Field> group)
         {
             int breaths = 0;
+            if (group.Count == 0)
+                breaths++;
             foreach (var field in group)
             {
                 breaths += GiveSurroundings(plane, field, GoGame.Players.None).Count;
@@ -23,8 +25,6 @@ namespace Go
             for(int i = 0; i < 5; i++)
             {
                 breaths[i] = GetNumberOfBreaths(plane, surroundings[i]);
-                if (i != 0)
-                    breaths[i]--;
             }
         }
         public static void SetNearGroups(Field[,] plane, Field f, HashSet<Field>[] surroundings)
@@ -50,6 +50,7 @@ namespace Go
         }
         public static HashSet<Field> GetAllCanGetTo(Field[,] plane, Field f, GoGame.Players turn)
         {
+            if (f.Player != turn) return new HashSet<Field>();
             HashSet<Field> beenTo = new HashSet<Field>() { f };
             var surroundings = GiveSurroundings(plane, f, turn);
             List<Field> toGo = new List<Field>();

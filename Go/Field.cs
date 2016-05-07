@@ -14,10 +14,18 @@ namespace Go
             Y = j;
             Player = GoGame.Players.None;
         }
+        public Field(Field f)
+        {
+            X = f.X;
+            Y = f.Y;
+            Player = f.Player;
+            Group = f.Group;
+        }
 
         public GoGame.Players Player { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
+        public int Group { get; set; }
 
         public override bool Equals(object obj)
         {
