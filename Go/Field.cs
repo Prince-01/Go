@@ -13,6 +13,7 @@ namespace Go
             X = i;
             Y = j;
             Player = GoGame.Players.None;
+            Group = -1;
         }
         public Field(Field f)
         {

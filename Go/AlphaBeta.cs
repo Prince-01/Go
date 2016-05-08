@@ -15,6 +15,8 @@ namespace Go
             GoGame.Players player = go.Turn;
 
             AB(go, int.MinValue, int.MaxValue, 0);
+            //var allmoves = GiveAllPossibleMovesFor(go, go.Turn);
+            //BestMove = allmoves[(new Random()).Next(allmoves.Count)];
             if (BestMove != null)
             {
                 go.MakeMove(new Point(BestMove.X + 1, BestMove.Y + 1));
@@ -25,15 +27,12 @@ namespace Go
         {
             List<Field> children = GiveAllPossibleMovesFor(game, game.Turn);
 
-            if (d == 2 || children.Count == 0)
+            if (d == 3 || children.Count == 0)
             {
-                int s = 0;
-                foreach (var f in game.Board)
-                {
-                    if (f.Player == game.Turn)
-                        s++;
-                }
-                return s;
+                if (game.Turn == GoGame.Players.White)
+                    return game.Points[0];
+                else
+                    return game.Points[1];
             }
 
             if (game.Turn == GoGame.Players.White)
@@ -45,11 +44,11 @@ namespace Go
                     int score = AB(newGame, alpha, beta, d + 1);
                     if (score > alpha)
                     {
-                        BestMove = child; alpha = score;
+                        if(d == 0) BestMove = child; alpha = score;
                     }
                     if (alpha >= beta)
                     {
-                        BestMove = child; return alpha;
+                        if(d == 0) BestMove = child; return alpha;
                     }
                 }
                 return alpha;
@@ -64,11 +63,11 @@ namespace Go
                     int score = AB(newGame, alpha, beta, d + 1);
                     if (score < beta)
                     {
-                        BestMove = child; beta = score;
+                        beta = score;
                     }
                     if (alpha >= beta)
                     {
-                        BestMove = child; return beta;
+                        return beta;
                     }
                 }
                 return beta;
