@@ -48,7 +48,7 @@ namespace Go
 
         public Point DetermineField(Point p)
         {
-            return new Point(p.X / UnitSize + 1, p.Y / UnitSize + 1);
+            return new Point(p.X / UnitSize, p.Y / UnitSize);
         }
 
         public void DrawField(Graphics g, Field f)
@@ -64,7 +64,7 @@ namespace Go
             Point fieldSelected = DetermineField(PointToClient(MousePosition));
             if (!ValidateSelectedField(fieldSelected))
                 return;
-            if (!game.MakeMove(fieldSelected))
+            if (!game.MakeMove(fieldSelected.X, fieldSelected.Y))
                 MessageBox.Show("Illegal move");
             else
                 AlphaBeta.Perform(game);
@@ -76,8 +76,8 @@ namespace Go
 
         private bool ValidateSelectedField(Point fieldSelected)
         {
-            return fieldSelected.X > 0 && fieldSelected.Y > 0 &&
-                fieldSelected.X <= game.Size && fieldSelected.Y <= game.Size;
+            return fieldSelected.X >= 0 && fieldSelected.Y >= 0 &&
+                fieldSelected.X < game.Size && fieldSelected.Y < game.Size;
         }
 
         private void Form1_Load(object sender, EventArgs e)

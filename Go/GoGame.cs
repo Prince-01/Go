@@ -25,6 +25,7 @@ namespace Go
         public Players Turn { get; set; }
         public Field LastMove { get; private set; }
         public bool LastMoveDeadly { get; private set; }
+        public Field MoveBeforeLast { get; private set; }
 
         public GoGame(int Size)
         {
@@ -43,7 +44,7 @@ namespace Go
         {
             Size = game.Size;
             Board = new Field[Size, Size];
-            Turn = game.Turn == Players.Black ? Players.White : Players.Black;
+            Turn = game.Turn;
             for (int i = 0; i < Size; i++)
                 for (int j = 0; j < Size; j++)
                     Board[i, j] = new Field(game.Board[i, j]);
@@ -71,242 +72,126 @@ namespace Go
                 Turn = Players.White;
         }
 
-        internal bool MakeMove(Point fieldSelected)
+        internal bool MakeMove(int x, int y)
         {
-            Field field = GetFromPoint(fieldSelected);
+            Field field = Board[x, y];
 
             if (field.Player != Players.None) return false;
-            field.Player = Turn;
+
+            int numberOfGroups = 0;
+            int ourBreaths = 0;
+            int ourGroups = 0;
+            bool atLeastOneGroupHasTwoBreaths = false;
+            bool killingMove = false;
 
             if (field.X > 0 && Board[field.X - 1, field.Y].Group != -1)
-            {
-                groups[0] = Groups[Board[field.X - 1, field.Y].Group];
-            }
-            else
-                groups[0] = null;
+                groups[numberOfGroups++] = Groups[Board[field.X - 1, field.Y].Group];
             if (field.Y > 0 && Board[field.X, field.Y - 1].Group != -1)
-            {
-                groups[1] = Groups[Board[field.X, field.Y - 1].Group];
-            }
-            else
-                groups[1] = null;
+                groups[numberOfGroups++] = Groups[Board[field.X, field.Y - 1].Group];
             if (field.X < Size - 1 && Board[field.X + 1, field.Y].Group != -1)
-            {
-                groups[2] = Groups[Board[field.X + 1, field.Y].Group];
-            }
-            else
-                groups[2] = null;
+                groups[numberOfGroups++] = Groups[Board[field.X + 1, field.Y].Group];
             if (field.Y < Size - 1 && Board[field.X, field.Y + 1].Group != -1)
+                groups[numberOfGroups++] = Groups[Board[field.X, field.Y + 1].Group];
+
+            ourBreaths = 4 - numberOfGroups;
+            if ((field.X == 0 && field.Y == 0) || (field.X == 0 && field.Y == 9 - 1) || (field.X == 9 - 1 && field.Y == 0) || (field.X == 9 - 1 && field.Y == 9 - 1))
+                ourBreaths -= 2;
+            else if (field.X == 0 || field.Y == 0 || field.X == 9 - 1 || field.Y == 9 - 1)
+                --ourBreaths;
+
+            if (numberOfGroups <= 1) ;
+            else if (numberOfGroups == 2)
             {
-                groups[3] = Groups[Board[field.X, field.Y + 1].Group];
+                if (groups[0].ID == groups[1].ID)
+                    numberOfGroups--;
+            }
+            else if (numberOfGroups == 3)
+            {
+                if (groups[1].ID == groups[2].ID || groups[0].ID == groups[2].ID)
+                    numberOfGroups--;
+                if (groups[0].ID == groups[1].ID)
+                    groups[1] = groups[--numberOfGroups];
             }
             else
-                groups[3] = null;
-
-            if (groups[0] != null)
             {
-                if (groups[1] != null && groups[0].ID == groups[1].ID) groups[1] = null;
-                if (groups[2] != null && groups[0].ID == groups[2].ID) groups[2] = null;
-                if (groups[3] != null && groups[0].ID == groups[3].ID) groups[3] = null;
+                if (groups[2].ID == groups[3].ID || groups[1].ID == groups[3].ID || groups[0].ID == groups[3].ID)
+                    numberOfGroups--;
+                if (groups[1].ID == groups[2].ID || groups[0].ID == groups[2].ID)
+                    groups[2] = groups[--numberOfGroups];
+                if (groups[0].ID == groups[1].ID)
+                {
+                    for (int i = 1; i < numberOfGroups; i++)
+                        groups[i - 1] = groups[i];
+                    numberOfGroups--;
+                }
             }
-            if (groups[1] != null)
-            {
-                if (groups[2] != null && groups[1].ID == groups[2].ID) groups[2] = null;
-                if (groups[3] != null && groups[1].ID == groups[3].ID) groups[3] = null;
-            }
-            if (groups[2] != null && groups[3] != null && groups[2].ID == groups[3].ID) groups[3] = null;
-
-            int ourbreaths = 0;
-            if (field.X > 0 && Board[field.X - 1, field.Y].Player == Players.None)
-                ourbreaths++;
-            if (field.Y > 0 && Board[field.X, field.Y - 1].Player == Players.None)
-                ourbreaths++;
-            if (field.X < 9 - 1 && Board[field.X + 1, field.Y].Player == Players.None)
-                ourbreaths++;
-            if (field.Y < 9 - 1 && Board[field.X, field.Y + 1].Player == Players.None)
-                ourbreaths++;
-
-            if (groups[0] != null && groups[0].Player() == Turn)
-                ourbreaths += groups[0].Breaths - 1;
-            if (groups[1] != null && groups[1].Player() == Turn)
-                ourbreaths += groups[1].Breaths - 1;
-            if (groups[2] != null && groups[2].Player() == Turn)
-                ourbreaths += groups[2].Breaths - 1;
-            if (groups[3] != null && groups[3].Player() == Turn)
-                ourbreaths += groups[3].Breaths - 1;
 
             Players enemy = Turn == Players.Black ? Players.White : Players.Black;
-            int enemyweakestbreath = 10;
-            if (groups[0] != null && groups[0].Player() == enemy)
-                enemyweakestbreath = Math.Min(enemyweakestbreath, groups[0].Breaths - 1);
-            if (groups[1] != null && groups[1].Player() == enemy)
-                enemyweakestbreath = Math.Min(enemyweakestbreath, groups[1].Breaths - 1);
-            if (groups[2] != null && groups[2].Player() == enemy)
-                enemyweakestbreath = Math.Min(enemyweakestbreath, groups[2].Breaths - 1);
-            if (groups[3] != null && groups[3].Player() == enemy)
-                enemyweakestbreath = Math.Min(enemyweakestbreath, groups[3].Breaths - 1);
+            bool twoBreaths = false;
+            for (int i = 0; i < numberOfGroups; i++)
+            {
+                twoBreaths = groups[i].CheckIfHasAtLeastTwoBreaths(Board);
 
-            field.Player = Players.None;
+                if (groups[i].Player() == Turn)
+                {
+                    ourGroups++;
+                    atLeastOneGroupHasTwoBreaths = atLeastOneGroupHasTwoBreaths || twoBreaths;
+                }
+                else if (!killingMove && !twoBreaths)
+                    killingMove = true;
+            }
 
-            if (!(ourbreaths > 0 || enemyweakestbreath <= 0) || LastMoveDeadly && LastMove != null && enemyweakestbreath == 0 && Math.Abs(field.X - LastMove.X) <= 1 && Math.Abs(field.Y - LastMove.Y) <= 1)
+            if (!(ourBreaths > 0 || atLeastOneGroupHasTwoBreaths || killingMove) || LastMoveDeadly && LastMove != null && killingMove && field.Equals(LastMove))
             {
                 return false;
             }
 
-            if (enemyweakestbreath == 0) LastMoveDeadly = true;
+            if (killingMove) LastMoveDeadly = true;
             else LastMoveDeadly = false;
+            MoveBeforeLast = LastMove;
             LastMove = field;
 
             FieldGroup fg;
-            if ((groups[0] == null || groups[0].Player() == enemy) && (groups[1] == null || groups[1].Player() == enemy) &&
-                (groups[2] == null || groups[2].Player() == enemy) && (groups[3] == null || groups[3].Player() == enemy))
+
+            if (ourGroups == 0)
             {
                 fg = FindNextFreeGroup();
                 fg.Fields.Add(field);
-                fg.Breaths = GiveBreathsSurrounding(field);
+                fg.AtLeastTwoBreaths = GiveBreathsSurrounding(field) >= 2;
+                fg.NeedsRefresh = false;
                 field.Group = fg.ID;
             }
-
-
-            if (groups[0] != null && groups[0].Player() == Turn)
-            {
-                groups[0].Fields.Add(field);
-                field.Group = groups[0].ID;
-                groups[0].Breaths += GiveBreathsSurrounding(field) - 1;
-            }
-            else if (groups[1] != null && groups[1].Player() == Turn)
-            {
-                groups[1].Fields.Add(field);
-                field.Group = groups[1].ID;
-                groups[1].Breaths += GiveBreathsSurrounding(field) - 1;
-            }
-            else if (groups[2] != null && groups[2].Player() == Turn)
-            {
-                groups[2].Fields.Add(field);
-                field.Group = groups[2].ID;
-                groups[2].Breaths += GiveBreathsSurrounding(field) - 1;
-            }
-            else if (groups[3] != null && groups[3].Player() == Turn)
-            {
-                groups[3].Fields.Add(field);
-                field.Group = groups[3].ID;
-                groups[3].Breaths += GiveBreathsSurrounding(field) - 1;
-            }
-
-            if (groups[0] != null && groups[0].Player() == Turn)
-            {
-                if (groups[1] != null && groups[1].Player() == Turn)
-                {
-                    if (groups[0].ID != groups[1].ID)
-                        groups[0].MergeWith(groups[1]);
-
-                    if (groups[2] != null && groups[2].Player() == Turn)
-                    {
-                        if (groups[0].ID != groups[2].ID)
-                            groups[0].MergeWith(groups[2]);
-
-                        if (groups[3] != null && groups[3].Player() == Turn)
-                        {
-                            if (groups[0].ID != groups[3].ID)
-                                groups[0].MergeWith(groups[3]);
-                        }
-                    }
-                }
-                else
-                {
-                    if (groups[2] != null && groups[2].Player() == Turn)
-                    {
-                        if (groups[0].ID != groups[2].ID)
-                            groups[0].MergeWith(groups[2]);
-
-                        if (groups[3] != null && groups[3].Player() == Turn)
-                        {
-                            if (groups[0].ID != groups[3].ID)
-                                groups[0].MergeWith(groups[3]);
-                        }
-                    }
-                    else
-                    {
-                        if (groups[3] != null && groups[3].Player() == Turn)
-                        {
-                            if (groups[0].ID != groups[3].ID)
-                                groups[0].MergeWith(groups[3]);
-                        }
-                        else
-                        {
-
-                        }
-                    }
-                }
-            }
             else
+                for (int i = 0; i < numberOfGroups; i++)
+                {
+                    if (groups[i].Player() == Turn)
+                    {
+                        groups[i].Fields.Add(field);
+                        field.Group = groups[i].ID;
+                        break;
+                    }
+                }
+
+            for (int i = 0; i < numberOfGroups; i++)
             {
-                if (groups[1] != null && groups[1].Player() == Turn)
-                {
-                    if (groups[2] != null && groups[2].Player() == Turn)
-                    {
-                        if (groups[1].ID != groups[2].ID)
-                            groups[1].MergeWith(groups[2]);
-
-                        if (groups[3] != null && groups[3].Player() == Turn)
+                groups[i].NeedsRefresh = true;
+                if (groups[i].Player() == Turn)
+                    for (int j = i + 1; j < numberOfGroups; j++)
+                        if (groups[j].Player() == Turn)
                         {
-                            if (groups[1].ID != groups[3].ID)
-                                groups[1].MergeWith(groups[3]);
+                            groups[i].MergeWith(groups[j]);
+                            for (int k = j + 1; k < numberOfGroups; k++)
+                                groups[k - 1] = groups[k];
+                            numberOfGroups--;
+                            j--;
                         }
-                    }
-                }
-                else
-                {
-                    if (groups[2] != null && groups[2].Player() == Turn)
-                    {
-                        if (groups[3] != null && groups[3].Player() == Turn)
-                        {
-                            if (groups[2].ID != groups[3].ID)
-                                groups[2].MergeWith(groups[3]);
-                        }
-                    }
-                    else
-                    {
-                        if (groups[3] != null)
-                        {
-                        }
-                        else
-                        {
-
-                        }
-                    }
-                }
             }
-
-            if (groups[0] != null && !groups[0].Free() && groups[0].Player() == enemy)
-                groups[0].ForceUpdateBreaths(Board);
-            if (groups[1] != null && !groups[1].Free() && groups[1].Player() == enemy)
-                groups[1].ForceUpdateBreaths(Board);
-            if (groups[2] != null && !groups[2].Free() && groups[2].Player() == enemy)
-                groups[2].ForceUpdateBreaths(Board);
-            if (groups[3] != null && !groups[3].Free() && groups[3].Player() == enemy)
-                groups[3].ForceUpdateBreaths(Board);
 
             field.Player = Turn;
 
-            if (groups[0] != null && !groups[0].Free() && groups[0].Player() != enemy)
-                groups[0].ForceUpdateBreaths(Board);
-            else if (groups[0] != null && !groups[0].Free() && groups[0].Player() == enemy)
-                groups[0].DecrementBreath();
-            if (groups[1] != null && !groups[1].Free() && groups[1].Player() != enemy)
-                groups[1].ForceUpdateBreaths(Board);
-            else if (groups[1] != null && !groups[1].Free() && groups[1].Player() == enemy)
-                groups[1].DecrementBreath();
-            if (groups[2] != null && !groups[2].Free() && groups[2].Player() != enemy)
-                groups[2].ForceUpdateBreaths(Board);
-            else if (groups[2] != null && !groups[2].Free() && groups[2].Player() == enemy)
-                groups[2].DecrementBreath();
-            if (groups[3] != null && !groups[3].Free() && groups[3].Player() != enemy)
-                groups[3].ForceUpdateBreaths(Board);
-            else if (groups[3] != null && !groups[3].Free() && groups[3].Player() == enemy)
-                groups[3].DecrementBreath();
-
-
+            for (int i = 0; i < numberOfGroups; i++)
+                if (groups[i].Player() == enemy)
+                    groups[i].CheckIfHasAtLeastTwoBreaths(Board);
 
             SwapTurns();
             Points[0] = 0;
@@ -334,58 +219,18 @@ namespace Go
 
             if (f.X > 0 && Board[f.X - 1, f.Y].Player == Players.None)
             {
-                /*bool nok = false;
-                if (f.X > 1 && Board[f.X - 2, f.Y].Group == f.Group)
-                    nok = true;
-                if (f.Y > 1 && Board[f.X, f.Y - 2].Group == f.Group)
-                    nok = true;
-                if (f.X < 9 - 2 && Board[f.X + 2, f.Y].Group == f.Group)
-                    nok = true;
-                if (f.Y < 9 - 2 && Board[f.X, f.Y + 2].Group == f.Group)
-                    nok = true;
-                if (!nok)*/
                 breaths++;
             }
             if (f.Y > 0 && Board[f.X, f.Y - 1].Player == Players.None)
             {
-                /*bool nok = false;
-                if (f.X > 1 && Board[f.X - 2, f.Y].Group == f.Group)
-                    nok = true;
-                if (f.Y > 1 && Board[f.X, f.Y - 2].Group == f.Group)
-                    nok = true;
-                if (f.X < 9 - 2 && Board[f.X + 2, f.Y].Group == f.Group)
-                    nok = true;
-                if (f.Y < 9 - 2 && Board[f.X, f.Y + 2].Group == f.Group)
-                    nok = true;
-                if (!nok) */
                 breaths++;
             }
             if (f.X < 9 - 1 && Board[f.X + 1, f.Y].Player == Players.None)
-            {
-                /*bool nok = false;
-                if (f.X > 1 && Board[f.X - 2, f.Y].Group == f.Group)
-                    nok = true;
-                if (f.Y > 1 && Board[f.X, f.Y - 2].Group == f.Group)
-                    nok = true;
-                if (f.X < 9 - 2 && Board[f.X + 2, f.Y].Group == f.Group)
-                    nok = true;
-                if (f.Y < 9 - 2 && Board[f.X, f.Y + 2].Group == f.Group)
-                    nok = true;
-                if (!nok) */
+            { 
                 breaths++;
             }
             if (f.Y < 9 - 1 && Board[f.X, f.Y + 1].Player == Players.None)
             {
-                /*bool nok = false;
-                if (f.X > 1 && Board[f.X - 2, f.Y].Group == f.Group)
-                    nok = true;
-                if (f.Y > 1 && Board[f.X, f.Y - 2].Group == f.Group)
-                    nok = true;
-                if (f.X < 9 - 2 && Board[f.X + 2, f.Y].Group == f.Group)
-                    nok = true;
-                if (f.Y < 9 - 2 && Board[f.X, f.Y + 2].Group == f.Group)
-                    nok = true;
-                if (!nok) */
                 breaths++;
             }
             return breaths;
@@ -402,70 +247,77 @@ namespace Go
             return Groups.Last();
         }
 
-        public bool IsPossibleMove(int i, int j, Players p)
+        public bool IsPossibleMove(int x, int y, Players p)
         {
-            Field field = Board[i, j];
+            Field field = Board[x, y];
             if (field.Player != Players.None) return false;
-            field.Player = Turn;
+
+            int numberOfGroups = 0;
+            int ourBreaths = 0;
+            int ourGroups = 0;
+            bool atLeastOneGroupHasTwoBreaths = false;
+            bool killingMove = false;
 
             if (field.X > 0 && Board[field.X - 1, field.Y].Group != -1)
-            {
-                groups[0] = Groups[Board[field.X - 1, field.Y].Group];
-            }
-            else
-                groups[0] = null;
+                groups[numberOfGroups++] = Groups[Board[field.X - 1, field.Y].Group];
             if (field.Y > 0 && Board[field.X, field.Y - 1].Group != -1)
-            {
-                groups[1] = Groups[Board[field.X, field.Y - 1].Group];
-            }
-            else
-                groups[1] = null;
+                groups[numberOfGroups++] = Groups[Board[field.X, field.Y - 1].Group];
             if (field.X < Size - 1 && Board[field.X + 1, field.Y].Group != -1)
-            {
-                groups[2] = Groups[Board[field.X + 1, field.Y].Group];
-            }
-            else
-                groups[2] = null;
+                groups[numberOfGroups++] = Groups[Board[field.X + 1, field.Y].Group];
             if (field.Y < Size - 1 && Board[field.X, field.Y + 1].Group != -1)
+                groups[numberOfGroups++] = Groups[Board[field.X, field.Y + 1].Group];
+
+            ourBreaths = 4 - numberOfGroups;
+            if ((field.X == 0 && field.Y == 0) || (field.X == 0 && field.Y == 9 - 1) || (field.X == 9 - 1 && field.Y == 0) || (field.X == 9 - 1 && field.Y == 9 - 1))
+                ourBreaths -= 2;
+            else if (field.X == 0 || field.Y == 0 || field.X == 9 - 1 || field.Y == 9 - 1)
+                --ourBreaths;
+
+            if (ourBreaths > 0) return true;
+
+            if (numberOfGroups <= 1) ;
+            else if (numberOfGroups == 2)
             {
-                groups[3] = Groups[Board[field.X, field.Y + 1].Group];
+                if (groups[0].ID == groups[1].ID)
+                    numberOfGroups--;
+            }
+            else if (numberOfGroups == 3)
+            {
+                if (groups[1].ID == groups[2].ID || groups[0].ID == groups[2].ID)
+                    numberOfGroups--;
+                if (groups[0].ID == groups[1].ID)
+                    groups[1] = groups[--numberOfGroups];
             }
             else
-                groups[3] = null;
-
-            int ourbreaths = 0;
-            if (field.X > 0 && Board[field.X - 1, field.Y].Player == Players.None)
-                ourbreaths++;
-            if (field.Y > 0 && Board[field.X, field.Y - 1].Player == Players.None)
-                ourbreaths++;
-            if (field.X < 9 - 1 && Board[field.X + 1, field.Y].Player == Players.None)
-                ourbreaths++;
-            if (field.Y < 9 - 1 && Board[field.X, field.Y + 1].Player == Players.None)
-                ourbreaths++;
-
-            if (groups[0] != null && groups[0].Player() == Turn)
-                ourbreaths += groups[0].Breaths - 1;
-            if (groups[1] != null && groups[1].Player() == Turn)
-                ourbreaths += groups[1].Breaths - 1;
-            if (groups[2] != null && groups[2].Player() == Turn)
-                ourbreaths += groups[2].Breaths - 1;
-            if (groups[3] != null && groups[3].Player() == Turn)
-                ourbreaths += groups[3].Breaths - 1;
+            {
+                if (groups[2].ID == groups[3].ID || groups[1].ID == groups[3].ID || groups[0].ID == groups[3].ID)
+                    numberOfGroups--;
+                if (groups[1].ID == groups[2].ID || groups[0].ID == groups[2].ID)
+                    groups[2] = groups[--numberOfGroups];
+                if (groups[0].ID == groups[1].ID)
+                {
+                    for (int i = 1; i < numberOfGroups; i++)
+                        groups[i - 1] = groups[i];
+                    numberOfGroups--;
+                }
+            }
 
             Players enemy = Turn == Players.Black ? Players.White : Players.Black;
-            int enemyweakestbreath = 10;
-            if (groups[0] != null && groups[0].Player() == enemy)
-                enemyweakestbreath = Math.Min(enemyweakestbreath, groups[0].Breaths - 1);
-            if (groups[1] != null && groups[1].Player() == enemy)
-                enemyweakestbreath = Math.Min(enemyweakestbreath, groups[1].Breaths - 1);
-            if (groups[2] != null && groups[2].Player() == enemy)
-                enemyweakestbreath = Math.Min(enemyweakestbreath, groups[2].Breaths - 1);
-            if (groups[3] != null && groups[3].Player() == enemy)
-                enemyweakestbreath = Math.Min(enemyweakestbreath, groups[3].Breaths - 1);
+            bool twoBreaths = false;
+            for (int i = 0; i < numberOfGroups; i++)
+            {
+                twoBreaths = groups[i].CheckIfHasAtLeastTwoBreaths(Board);
 
-            field.Player = Players.None;
+                if (groups[i].Player() == Turn)
+                {
+                    ourGroups++;
+                    atLeastOneGroupHasTwoBreaths = atLeastOneGroupHasTwoBreaths || twoBreaths;
+                }
+                else if (!killingMove && !twoBreaths)
+                    killingMove = true;
+            }
 
-            if (!(ourbreaths > 0 || enemyweakestbreath == 0) || LastMoveDeadly && LastMove != null && enemyweakestbreath == 0 && Math.Abs(field.X - LastMove.X) <= 1 && Math.Abs(field.Y - LastMove.Y) <= 1)
+            if (!(atLeastOneGroupHasTwoBreaths || killingMove) || LastMoveDeadly && LastMove != null && killingMove && field.Equals(LastMove))
             {
                 return false;
             }

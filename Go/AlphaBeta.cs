@@ -19,7 +19,7 @@ namespace Go
             //BestMove = allmoves[(new Random()).Next(allmoves.Count)];
             if (BestMove != null)
             {
-                go.MakeMove(new Point(BestMove.X + 1, BestMove.Y + 1));
+                go.MakeMove(BestMove.X, BestMove.Y);
             }
         }
 
@@ -27,7 +27,7 @@ namespace Go
         {
             List<Field> children = GiveAllPossibleMovesFor(game, game.Turn);
 
-            if (d == 3 || children.Count == 0)
+            if (d == 4 || children.Count == 0)
             {
                 if (game.Turn == GoGame.Players.White)
                     return game.Points[0];
@@ -40,15 +40,15 @@ namespace Go
                 foreach (var child in children)
                 {
                     GoGame newGame = new GoGame(game);
-                    newGame.MakeMove(new Point(child.X + 1, child.Y + 1));
+                    newGame.MakeMove(child.X, child.Y);
                     int score = AB(newGame, alpha, beta, d + 1);
                     if (score > alpha)
                     {
-                        if(d == 0) BestMove = child; alpha = score;
+                        if (d == 0) BestMove = child; alpha = score;
                     }
                     if (alpha >= beta)
                     {
-                        if(d == 0) BestMove = child; return alpha;
+                        if (d == 0) BestMove = child; return alpha;
                     }
                 }
                 return alpha;
@@ -59,15 +59,15 @@ namespace Go
                 foreach (var child in children)
                 {
                     GoGame newGame = new GoGame(game);
-                    newGame.MakeMove(new Point(child.X + 1, child.Y + 1));
+                    newGame.MakeMove(child.X, child.Y);
                     int score = AB(newGame, alpha, beta, d + 1);
                     if (score < beta)
                     {
-                        beta = score;
+                        if (d == 0) BestMove = child; beta = score;
                     }
                     if (alpha >= beta)
                     {
-                        return beta;
+                        if (d == 0) BestMove = child; return beta;
                     }
                 }
                 return beta;
