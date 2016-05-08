@@ -67,10 +67,13 @@ namespace Go
             if (!game.MakeMove(fieldSelected.X, fieldSelected.Y))
                 MessageBox.Show("Illegal move");
             else
+            {
+                DrawBoard();
                 AlphaBeta.Perform(game);
-
+            }
             //DrawField(CreateGraphics(), game.Board[fieldSelected.X - 1, fieldSelected.Y - 1]);
             DrawBoard();
+            CreateGraphics().FillEllipse(Brushes.Red, game.LastMove.X * UnitSize, game.LastMove.Y * UnitSize, UnitSize, UnitSize);
             Text = "White: " + game.Points[0] + ", Black: " + game.Points[1];
         }
 

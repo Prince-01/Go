@@ -130,7 +130,7 @@ namespace Go
             bool twoBreaths = false;
             for (int i = 0; i < numberOfGroups; i++)
             {
-                twoBreaths = groups[i].CheckIfHasAtLeastTwoBreaths(Board);
+                twoBreaths = groups[i].CheckIfHasAtLeastTwoBreaths(Board, field);
 
                 if (groups[i].Player() == Turn)
                 {
@@ -141,7 +141,7 @@ namespace Go
                     killingMove = true;
             }
 
-            if (!(ourBreaths > 0 || atLeastOneGroupHasTwoBreaths || killingMove) || LastMoveDeadly && LastMove != null && killingMove && field.Equals(LastMove))
+            if (!(ourBreaths > 0 || atLeastOneGroupHasTwoBreaths || killingMove) || LastMoveDeadly && MoveBeforeLast != null && killingMove && field.Equals(MoveBeforeLast))
             {
                 return false;
             }
@@ -158,7 +158,6 @@ namespace Go
                 fg = FindNextFreeGroup();
                 fg.Fields.Add(field);
                 fg.AtLeastTwoBreaths = GiveBreathsSurrounding(field) >= 2;
-                fg.NeedsRefresh = false;
                 field.Group = fg.ID;
             }
             else
@@ -174,7 +173,6 @@ namespace Go
 
             for (int i = 0; i < numberOfGroups; i++)
             {
-                groups[i].NeedsRefresh = true;
                 if (groups[i].Player() == Turn)
                     for (int j = i + 1; j < numberOfGroups; j++)
                         if (groups[j].Player() == Turn)
@@ -191,7 +189,7 @@ namespace Go
 
             for (int i = 0; i < numberOfGroups; i++)
                 if (groups[i].Player() == enemy)
-                    groups[i].CheckIfHasAtLeastTwoBreaths(Board);
+                    groups[i].CheckIfHasAtLeastTwoBreaths(Board, field);
 
             SwapTurns();
             Points[0] = 0;
@@ -199,16 +197,9 @@ namespace Go
             foreach (var f in Board)
             {
                 if (f.Player == Players.White)
-                    Points[0] += 1000;
+                    Points[0] += 10;
                 else if (f.Player == Players.Black)
-                    Points[1] += 1000;
-            }
-            foreach (var g in Groups)
-            {
-                if (g.Player() == Players.White)
-                    Points[0] += g.Breaths;
-                else if (g.Player() == Players.Black)
-                    Points[1] += g.Breaths;
+                    Points[1] += 10;
             }
             return true;
         }
@@ -306,7 +297,7 @@ namespace Go
             bool twoBreaths = false;
             for (int i = 0; i < numberOfGroups; i++)
             {
-                twoBreaths = groups[i].CheckIfHasAtLeastTwoBreaths(Board);
+                twoBreaths = groups[i].CheckIfHasAtLeastTwoBreaths(Board, field);
 
                 if (groups[i].Player() == Turn)
                 {
@@ -317,7 +308,7 @@ namespace Go
                     killingMove = true;
             }
 
-            if (!(atLeastOneGroupHasTwoBreaths || killingMove) || LastMoveDeadly && LastMove != null && killingMove && field.Equals(LastMove))
+            if (!(atLeastOneGroupHasTwoBreaths || killingMove) || LastMoveDeadly && MoveBeforeLast != null && killingMove && field.Equals(MoveBeforeLast))
             {
                 return false;
             }
