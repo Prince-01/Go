@@ -157,7 +157,6 @@ namespace Go
             {
                 fg = FindNextFreeGroup();
                 fg.Fields.Add(field);
-                fg.AtLeastTwoBreaths = GiveBreathsSurrounding(field) >= 2;
                 field.Group = fg.ID;
             }
             else
@@ -197,34 +196,33 @@ namespace Go
             foreach (var f in Board)
             {
                 if (f.Player == Players.White)
-                    Points[0] += 10;
+                {
+                    
+                    if ((f.X == 0 && f.Y != 0 && f.Y != 8) || (f.X == 8 && f.Y != 0 && f.Y != 8) || (f.Y == 0 && f.X != 0 && f.X != 8) || (f.Y == 8 && f.X != 0 && f.X != 8))
+                        Points[0] += 2;
+                    else if ((f.X == 0 && f.Y == 0) || (f.X == 8 && f.Y == 0) || (f.X == 0 && f.Y == 8) || (f.X == 8 && f.Y == 8))
+                        Points[0] += 1;
+                    else
+                        Points[0] += 3;
+                }
                 else if (f.Player == Players.Black)
-                    Points[1] += 10;
+                {
+                    if ((f.X == 0 && f.Y != 0 && f.Y != 8) || (f.X == 8 && f.Y != 0 && f.Y != 8) || (f.Y == 0 && f.X != 0 && f.X != 8) || (f.Y == 8 && f.X != 0 && f.X != 8))
+                        Points[1] += 2;
+                    else if ((f.X == 0 && f.Y == 0) || (f.X == 8 && f.Y == 0) || (f.X == 0 && f.Y == 8) || (f.X == 8 && f.Y == 8))
+                        Points[1] += 1;
+                    else
+                        Points[1] += 3;
+                }
+            }
+            foreach (var group in Groups)
+            {
+                if (!group.Free() && group.Player() == Players.White)
+                    Points[0] += (group.Fields.Count * group.Fields.Count - 1) / 2;
+                if (!group.Free() && group.Player() == Players.Black)
+                    Points[1] += (group.Fields.Count * group.Fields.Count - 1) / 2;
             }
             return true;
-        }
-
-        int GiveBreathsSurrounding(Field f)
-        {
-            int breaths = 0;
-
-            if (f.X > 0 && Board[f.X - 1, f.Y].Player == Players.None)
-            {
-                breaths++;
-            }
-            if (f.Y > 0 && Board[f.X, f.Y - 1].Player == Players.None)
-            {
-                breaths++;
-            }
-            if (f.X < 9 - 1 && Board[f.X + 1, f.Y].Player == Players.None)
-            { 
-                breaths++;
-            }
-            if (f.Y < 9 - 1 && Board[f.X, f.Y + 1].Player == Players.None)
-            {
-                breaths++;
-            }
-            return breaths;
         }
 
         FieldGroup FindNextFreeGroup()
@@ -313,50 +311,6 @@ namespace Go
                 return false;
             }
             return true;
-        }
-
-        private Field GetFromPoint(Point fieldSelected)
-        {
-            return Board[fieldSelected.X - 1, fieldSelected.Y - 1];
-        }
-
-        private void PushField(Field field)
-        {
-            AffectBoard(field);
-        }
-
-        private void AffectBoard(Field field)
-        {
-            if (Breaths[1] == 0)
-                SetFieldsToNone(Surroundings[1]);
-            if (Breaths[2] == 0)
-                SetFieldsToNone(Surroundings[2]);
-            if (Breaths[3] == 0)
-                SetFieldsToNone(Surroundings[3]);
-            if (Breaths[4] == 0)
-                SetFieldsToNone(Surroundings[4]);
-        }
-
-        private void SetFieldsToNone(HashSet<Field> toRemove)
-        {
-            foreach (var field in toRemove)
-            {
-                field.Player = Players.None;
-            }
-        }
-
-        private bool CheckIfLegal()
-        {
-            if (CheckIfSuicidalMove())
-            {
-                return false;
-            }
-            return true;
-        }
-
-        private bool CheckIfSuicidalMove()
-        {
-            return !(Breaths[0] != 0 || Breaths[1] == 0 || Breaths[2] == 0 || Breaths[3] == 0 || Breaths[4] == 0);
         }
     }
 }

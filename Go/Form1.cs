@@ -58,6 +58,7 @@ namespace Go
             else
                 g.FillEllipse(f.Player == GoGame.Players.White ? Brushes.White : Brushes.Black, f.X * UnitSize, f.Y * UnitSize, UnitSize, UnitSize);
         }
+        bool d = true;
 
         private void Form1_Click(object sender, EventArgs e)
         {
@@ -69,12 +70,21 @@ namespace Go
             else
             {
                 DrawBoard();
-                AlphaBeta.Perform(game);
+                AlphaBeta.Perform(game, !d);
             }
-            //DrawField(CreateGraphics(), game.Board[fieldSelected.X - 1, fieldSelected.Y - 1]);
             DrawBoard();
             CreateGraphics().FillEllipse(Brushes.Red, game.LastMove.X * UnitSize, game.LastMove.Y * UnitSize, UnitSize, UnitSize);
             Text = "White: " + game.Points[0] + ", Black: " + game.Points[1];
+           /* while (true)
+            {
+                AlphaBeta.Perform(game, d);
+                d = !d;
+                //DrawField(CreateGraphics(), game.Board[fieldSelected.X - 1, fieldSelected.Y - 1]);
+                DrawBoard();
+                CreateGraphics().FillEllipse(Brushes.Red, game.LastMove.X * UnitSize, game.LastMove.Y * UnitSize, UnitSize, UnitSize);
+                Text = "White: " + game.Points[0] + ", Black: " + game.Points[1];
+               
+            }*/
         }
 
         private bool ValidateSelectedField(Point fieldSelected)
