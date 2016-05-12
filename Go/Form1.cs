@@ -75,10 +75,11 @@ namespace Go
             DrawBoard();
             CreateGraphics().FillEllipse(Brushes.Red, game.LastMove.X * UnitSize, game.LastMove.Y * UnitSize, UnitSize, UnitSize);
             Text = "White: " + game.Points[0] + ", Black: " + game.Points[1];
-           /* while (true)
+            /*while (true)
             {
-                AlphaBeta.Perform(game, d);
                 d = !d;
+
+                AlphaBeta.Perform(game, d);
                 //DrawField(CreateGraphics(), game.Board[fieldSelected.X - 1, fieldSelected.Y - 1]);
                 DrawBoard();
                 CreateGraphics().FillEllipse(Brushes.Red, game.LastMove.X * UnitSize, game.LastMove.Y * UnitSize, UnitSize, UnitSize);
@@ -101,6 +102,17 @@ namespace Go
         private void Form1_Resize(object sender, EventArgs e)
         {
             DrawBoard();
+        }
+
+        private void Form1_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if(e.KeyChar == ' ')
+            {
+                game.SwapTurns();
+                AlphaBeta.Perform(game, !d);
+                DrawBoard();
+                CreateGraphics().FillEllipse(Brushes.Red, game.LastMove.X * UnitSize, game.LastMove.Y * UnitSize, UnitSize, UnitSize);
+            }
         }
     }
 }

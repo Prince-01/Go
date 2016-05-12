@@ -17,11 +17,12 @@ namespace Go
         }
         public int Size { get; set; }
         public Field[,] Board { get; set; }
-        HashSet<Field>[] Surroundings;
+        LinkedList<Field> History;
         FieldGroup[] groups;
         int[] Breaths;
         public List<FieldGroup> Groups { get; set; }
         public int[] Points;
+        public int[] Bonuses;
         public Players Turn { get; set; }
         public Field LastMove { get; private set; }
         public bool LastMoveDeadly { get; private set; }
@@ -34,9 +35,9 @@ namespace Go
             for (int i = 0; i < Size; i++)
                 for (int j = 0; j < Size; j++)
                     Board[i, j] = new Field(i, j);
-            Surroundings = new HashSet<Field>[5];
             Breaths = new int[5];
             Points = new int[2] { 0, 0 };
+            Bonuses = new int[2] { 0, 0 };
             groups = new FieldGroup[4];
             Groups = new List<FieldGroup>();
         }
@@ -48,9 +49,9 @@ namespace Go
             for (int i = 0; i < Size; i++)
                 for (int j = 0; j < Size; j++)
                     Board[i, j] = new Field(game.Board[i, j]);
-            Surroundings = new HashSet<Field>[5];
             Breaths = new int[5];
             Points = new int[2] { 0, 0 };
+            Bonuses = new int[2] { 0, 0 };
             groups = new FieldGroup[4];
             Groups = new List<FieldGroup>();
             foreach (var group in game.Groups)
@@ -62,6 +63,11 @@ namespace Go
                 }
                 Groups.Add(fg);
             }
+        }
+
+        public void GoBack()
+        {
+
         }
 
         public void SwapTurns()
@@ -141,7 +147,7 @@ namespace Go
                     killingMove = true;
             }
 
-            if (!(ourBreaths > 0 || atLeastOneGroupHasTwoBreaths || killingMove) || LastMoveDeadly && MoveBeforeLast != null && killingMove && field.Equals(MoveBeforeLast))
+            if (!(ourBreaths > 0 || atLeastOneGroupHasTwoBreaths || killingMove) || LastMoveDeadly && LastMove != null && killingMove && (field.X - 1 == LastMove.X && field.Y == LastMove.Y || field.X + 1 == LastMove.X && field.Y == LastMove.Y || field.Y - 1 == LastMove.Y && field.X == LastMove.X || field.Y + 1 == LastMove.Y && field.X == LastMove.X))
             {
                 return false;
             }
@@ -191,38 +197,194 @@ namespace Go
                     groups[i].CheckIfHasAtLeastTwoBreaths(Board, field);
 
             SwapTurns();
+
+            return true;
+        }
+
+        internal void ChangeInto(GoGame goGame)
+        {
+            for (int i = 0; i < Size; i++)
+            {
+                for (int j = 0; j < Size; j++)
+                {
+                    Players player = Board[i, j].Player;
+                    Players newPlayer = goGame.Board[i, j].Player;
+                    int gr = Board[i, j].Group;
+                    int newGr = goGame.Board[i, j].Group;
+
+                    if (gr != newGr)
+                    {
+                        Board[i, j].Player = newPlayer;
+                        Board[i, j].Group = newGr;
+
+                        if (gr != -1)
+                            Groups[gr].Fields.Clear();
+                        while (Groups.Count <= newGr)
+                            Groups.Add(new FieldGroup(Groups.Count));
+                        if (newGr != -1)
+                            Groups[newGr].Fields.Add(Board[i, j]);
+                    }
+                }
+            }
+            Turn = goGame.Turn;
+        }
+
+        public void CountPoints()
+        {
             Points[0] = 0;
             Points[1] = 0;
+            Bonuses[0] = 0;
+            Bonuses[1] = 0;
             foreach (var f in Board)
             {
+                int numberofgroups = 0;
                 if (f.Player == Players.White)
                 {
-                    
-                    if ((f.X == 0 && f.Y != 0 && f.Y != 8) || (f.X == 8 && f.Y != 0 && f.Y != 8) || (f.Y == 0 && f.X != 0 && f.X != 8) || (f.Y == 8 && f.X != 0 && f.X != 8))
-                        Points[0] += 2;
-                    else if ((f.X == 0 && f.Y == 0) || (f.X == 8 && f.Y == 0) || (f.X == 0 && f.Y == 8) || (f.X == 8 && f.Y == 8))
-                        Points[0] += 1;
-                    else
-                        Points[0] += 3;
+                    int nones = 0;
+                    int blacks = 0;
+                    if (f.X > 0)
+                    {
+                        if (Board[f.X - 1, f.Y].Player == Players.Black)
+                        {
+                            groups[numberofgroups++] = Groups[Board[f.X - 1, f.Y].Group];
+                            blacks++;
+                        }
+                        if (Board[f.X - 1, f.Y].Player == Players.None)
+                            nones++;
+                    }
+                    if (f.Y > 0)
+                    {
+                        if (Board[f.X, f.Y - 1].Player == Players.Black)
+                        {
+                            blacks++;
+                            bool ok = true;
+                            FieldGroup fg = Groups[Board[f.X, f.Y - 1].Group];
+                            for (int i = 0; i < numberofgroups; i++)
+                                if (fg.ID == groups[i].ID)
+                                    ok = false;
+                            if (ok)
+                                groups[numberofgroups++] = fg;
+                        }
+                        if (Board[f.X, f.Y - 1].Player == Players.None)
+                            nones++;
+                    }
+                    if (f.X < 9 - 1)
+                    {
+                        if (Board[f.X + 1, f.Y].Player == Players.Black)
+                        {
+                            blacks++;
+                            bool ok = true;
+                            FieldGroup fg = Groups[Board[f.X + 1, f.Y].Group];
+                            for (int i = 0; i < numberofgroups; i++)
+                                if (fg.ID == groups[i].ID)
+                                    ok = false;
+                            if (ok)
+                                groups[numberofgroups++] = fg;
+                        }
+                        if (Board[f.X + 1, f.Y].Player == Players.None)
+                            nones++;
+                    }
+                    if (f.Y < 9 - 1)
+                    {
+                        if (Board[f.X, f.Y + 1].Player == Players.Black)
+                        {
+                            blacks++;
+                            bool ok = true;
+                            FieldGroup fg = Groups[Board[f.X, f.Y + 1].Group];
+                            for (int i = 0; i < numberofgroups; i++)
+                                if (fg.ID == groups[i].ID)
+                                    ok = false;
+                            if (ok)
+                                groups[numberofgroups++] = fg;
+                        }
+                        if (Board[f.X, f.Y + 1].Player == Players.None)
+                            nones++;
+                    }
+                    int figs = Groups[f.Group].Fields.Count;
+                    for (int i = 0; i < numberofgroups; i++)
+                        Bonuses[0] += (groups[i].Fields.Count - figs / 2);
+                    Bonuses[0] += 6 - Math.Abs(2 - (blacks + nones)) * 3;
+                    Bonuses[0] += 3 - Math.Abs(1 - blacks);
+                    //if (blacks + nones == 0)
+                    //  Bonuses[0] -= 5;
+                    Bonuses[0] += nones;
+                    Bonuses[0] -= (Math.Abs(f.X - 4) + Math.Abs(f.Y - 4));
+                    Points[0] += 150;
                 }
                 else if (f.Player == Players.Black)
                 {
-                    if ((f.X == 0 && f.Y != 0 && f.Y != 8) || (f.X == 8 && f.Y != 0 && f.Y != 8) || (f.Y == 0 && f.X != 0 && f.X != 8) || (f.Y == 8 && f.X != 0 && f.X != 8))
-                        Points[1] += 2;
-                    else if ((f.X == 0 && f.Y == 0) || (f.X == 8 && f.Y == 0) || (f.X == 0 && f.Y == 8) || (f.X == 8 && f.Y == 8))
-                        Points[1] += 1;
-                    else
-                        Points[1] += 3;
+                    int nones = 0;
+                    int blacks = 0;
+                    if (f.X > 0)
+                    {
+                        if (Board[f.X - 1, f.Y].Player == Players.White)
+                        {
+                            blacks++;
+                            groups[numberofgroups++] = Groups[Board[f.X - 1, f.Y].Group];
+                        }
+                        if (Board[f.X - 1, f.Y].Player == Players.None)
+                            nones++;
+                    }
+                    if (f.Y > 0)
+                    {
+                        if (Board[f.X, f.Y - 1].Player == Players.White)
+                        {
+                            blacks++;
+                            bool ok = true;
+                            FieldGroup fg = Groups[Board[f.X, f.Y - 1].Group];
+                            for (int i = 0; i < numberofgroups; i++)
+                                if (fg.ID == groups[i].ID)
+                                    ok = false;
+                            if (ok)
+                                groups[numberofgroups++] = fg;
+                        }
+                        if (Board[f.X, f.Y - 1].Player == Players.None)
+                            nones++;
+                    }
+                    if (f.X < 9 - 1)
+                    {
+                        if (Board[f.X + 1, f.Y].Player == Players.White)
+                        {
+                            blacks++;
+                            bool ok = true;
+                            FieldGroup fg = Groups[Board[f.X + 1, f.Y].Group];
+                            for (int i = 0; i < numberofgroups; i++)
+                                if (fg.ID == groups[i].ID)
+                                    ok = false;
+                            if (ok)
+                                groups[numberofgroups++] = fg;
+                        }
+                        if (Board[f.X + 1, f.Y].Player == Players.None)
+                            nones++;
+                    }
+                    if (f.Y < 9 - 1)
+                    {
+                        if (Board[f.X, f.Y + 1].Player == Players.White)
+                        {
+                            blacks++;
+                            bool ok = true;
+                            FieldGroup fg = Groups[Board[f.X, f.Y + 1].Group];
+                            for (int i = 0; i < numberofgroups; i++)
+                                if (fg.ID == groups[i].ID)
+                                    ok = false;
+                            if (ok)
+                                groups[numberofgroups++] = fg;
+                        }
+                        if (Board[f.X, f.Y + 1].Player == Players.None)
+                            nones++;
+                    }
+                    int figs = Groups[f.Group].Fields.Count;
+                    for (int i = 0; i < numberofgroups; i++)
+                        Bonuses[1] += (groups[i].Fields.Count - figs / 2);
+                    Bonuses[1] += 6 - Math.Abs(2 - (blacks + nones)) * 3;
+                    Bonuses[1] += nones;
+                    Bonuses[1] += 3 - Math.Abs(1 - blacks);
+                    //if (blacks + nones == 0)
+                    //  Bonuses[1] -= 5;
+                    Bonuses[1] += (Math.Abs(f.X - 4) + Math.Abs(f.Y - 4));
+                    Points[1] += 150;
                 }
             }
-            foreach (var group in Groups)
-            {
-                if (!group.Free() && group.Player() == Players.White)
-                    Points[0] += (group.Fields.Count * group.Fields.Count - 1) / 2;
-                if (!group.Free() && group.Player() == Players.Black)
-                    Points[1] += (group.Fields.Count * group.Fields.Count - 1) / 2;
-            }
-            return true;
         }
 
         FieldGroup FindNextFreeGroup()
@@ -306,7 +468,7 @@ namespace Go
                     killingMove = true;
             }
 
-            if (!(atLeastOneGroupHasTwoBreaths || killingMove) || LastMoveDeadly && MoveBeforeLast != null && killingMove && field.Equals(MoveBeforeLast))
+            if (!(atLeastOneGroupHasTwoBreaths || killingMove) || LastMoveDeadly && MoveBeforeLast != null && killingMove && LastMoveDeadly && LastMove != null && killingMove && (field.X - 1 == LastMove.X && field.Y == LastMove.Y || field.X + 1 == LastMove.X && field.Y == LastMove.Y || field.Y - 1 == LastMove.Y && field.X == LastMove.X || field.Y + 1 == LastMove.Y && field.X == LastMove.X))
             {
                 return false;
             }

@@ -14,10 +14,11 @@ namespace Go
         {
             GoGame.Players player = go.Turn;
 
+            depths[0] = go;
             if (!d)
-                AB(go, int.MinValue, int.MaxValue, 0);
-            else
-                DoubleAB(go, double.MinValue, double.MaxValue, 0);
+                AB(int.MinValue, int.MaxValue, 0);
+            //else
+              //  BAB(go, int.MinValue, int.MaxValue, 0);
             //var allmoves = GiveAllPossibleMovesFor(go, go.Turn);
             //BestMove = allmoves[(new Random()).Next(allmoves.Count)];
             if (BestMove != null)
@@ -26,19 +27,20 @@ namespace Go
             }
         }
 
-        public static int AB(GoGame game, int alpha, int beta, int d)
+        /*public static int BAB(GoGame game, int alpha, int beta, int d)
         {
             List<Field> children = GiveAllPossibleMovesFor(game, game.Turn);
 
-            if (d == 4 || children.Count == 0)
+            if (d == 3 || children.Count == 0)
             {
-                if (game.Turn == GoGame.Players.White)
-                    return game.Points[0];
+                game.CountPoints();
+                if (game.Turn == GoGame.Players.Black)
+                    return (game.Points[0] - game.Points[1]) + game.Bonuses[0];
                 else
-                    return game.Points[1];
+                    return (game.Points[1] - game.Points[0]) + game.Bonuses[1];
             }
 
-            if (game.Turn == GoGame.Players.White)
+            if (game.Turn == GoGame.Players.Black)
             {
                 foreach (var child in children)
                 {
@@ -64,6 +66,63 @@ namespace Go
                     GoGame newGame = new GoGame(game);
                     newGame.MakeMove(child.X, child.Y);
                     int score = AB(newGame, alpha, beta, d + 1);
+                    if (score < beta)
+                    {
+                        if (d == 0) BestMove = child; beta = score;
+                    }
+                    if (alpha >= beta)
+                    {
+                        if (d == 0) BestMove = child; return beta;
+                    }
+                }
+                return beta;
+            }
+
+        }*/
+
+        static GoGame[] depths = new GoGame[5] { new GoGame(9), new GoGame(9), new GoGame(9), new GoGame(9), new GoGame(9) };
+
+        public static int AB(int alpha, int beta, int d)
+        {
+            GoGame game = depths[d];
+
+            List<Field> children = GiveAllPossibleMovesFor(game, game.Turn);
+
+            if (d == 3 || children.Count == 0)
+            {
+                game.CountPoints();
+                if (game.Turn == GoGame.Players.Black)
+                    return (game.Points[0] - game.Points[1]) + game.Bonuses[0];
+                else
+                    return (game.Points[1] - game.Points[0]) + game.Bonuses[1];
+            }
+
+            if (game.Turn == GoGame.Players.White)
+            {
+                foreach (var child in children)
+                {
+                    depths[d + 1].ChangeInto(depths[d]);
+                    depths[d + 1].MakeMove(child.X, child.Y);
+                    int score = AB(alpha, beta, d + 1);
+                    if (score > alpha)
+                    {
+                        if (d == 0) BestMove = child; alpha = score;
+                    }
+                    if (alpha >= beta)
+                    {
+                        if (d == 0) BestMove = child; return alpha;
+                    }
+                }
+                return alpha;
+
+            }
+            else
+            {
+                foreach (var child in children)
+                {
+                    depths[d + 1].ChangeInto(depths[d]);
+                    depths[d + 1].MakeMove(child.X, child.Y);
+                    int score = AB(alpha, beta, d + 1);
                     if (score < beta)
                     {
                         if (d == 0) BestMove = child; beta = score;
